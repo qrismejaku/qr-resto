@@ -1,0 +1,11 @@
+﻿name = "qr-resto"
+main = "worker.js"
+compatibility_date = "2026-09-15"
+
+[vars]
+SUPABASE_URL = "https://xejtjenjbhakdyogcxfk.supabase.co"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
