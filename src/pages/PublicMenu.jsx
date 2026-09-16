@@ -422,7 +422,7 @@ export default function PublicMenu({ slug, tableNumber }) {
               <div className="checkout-message">
                 {checkoutSuccess ? (
                   <>
-                    <strong>âœ“ Pesanan berhasil dibuat</strong>
+                    <strong>&#10003; Pesanan berhasil dibuat</strong>
                     <div>ID Pesanan: {successOrderId}</div>
                     <div>Total: {formatPrice(successOrderTotal)}</div>
                     <div>{checkoutMessage}</div>
@@ -481,4 +481,5 @@ export default function PublicMenu({ slug, tableNumber }) {
     </div>
   )
 }
+
 
