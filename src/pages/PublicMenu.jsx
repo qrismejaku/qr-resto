@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://qr-resto.birobusines.workers.dev'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://qr-resto.qrismejaku.workers.dev'
 
 export default function PublicMenu({ slug, tableNumber }) {
   const [restaurant, setRestaurant] = useState(null)
@@ -62,7 +62,7 @@ export default function PublicMenu({ slug, tableNumber }) {
     const { data: menuData, error: menuError } =
       await supabase
         .from('menus')
-        .select('id, name, description, price, category_id, is_available')
+        .select('id, name, description, price, category_id, image_url, is_available')
         .eq('restaurant_id', restaurantData.id)
         .eq('is_available', true)
         .order('name')
@@ -237,6 +237,15 @@ export default function PublicMenu({ slug, tableNumber }) {
                     className="public-menu-item"
                     key={menu.id}
                   >
+                    {menu.image_url && (
+                      <img
+                        src={menu.image_url}
+                        alt={menu.name}
+                        className="public-menu-item-image"
+                        loading="lazy"
+                      />
+                    )}
+
                     <div className="public-menu-item-info">
                       <h3>{menu.name}</h3>
 
@@ -472,3 +481,4 @@ export default function PublicMenu({ slug, tableNumber }) {
     </div>
   )
 }
+

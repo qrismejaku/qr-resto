@@ -14,6 +14,8 @@ function MenuManager({ restaurant, onBack }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [editingMenu, setEditingMenu] = useState(null)
+  const [selectedImage, setSelectedImage] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -65,6 +67,61 @@ function MenuManager({ restaurant, onBack }) {
     setSaving(false)
   }
 
+  const uploadMenuImage = async (file) => {
+    if (!file) return null
+
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File harus berupa gambar.')
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error('Ukuran foto maksimal 5 MB.')
+    }
+
+    const safeName = file.name
+      .toLowerCase()
+      .replace(/[^a-z0-9.]+/g, '-')
+
+    const filePath = `${restaurant.id}/${Date.now()}-${safeName}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('menu-images')
+      .upload(filePath, file)
+
+    if (uploadError) {
+      throw uploadError
+    }
+
+    const { data } = supabase.storage
+      .from('menu-images')
+      .getPublicUrl(filePath)
+
+    return data.publicUrl
+  }
+
+  const deleteMenuImage = async (imageUrl) => {
+    if (!imageUrl) return
+
+    try {
+      const marker = '/menu-images/'
+      const index = imageUrl.indexOf(marker)
+
+      if (index === -1) return
+
+      const filePath = decodeURIComponent(
+        imageUrl.slice(index + marker.length)
+      )
+
+      if (!filePath) return
+
+      await supabase.storage
+        .from('menu-images')
+        .remove([filePath])
+    } catch (error) {
+      console.warn('Foto lama gagal dihapus:', error)
+    }
+  }
+
   const addMenu = async (e) => {
     e.preventDefault()
     setMessage('')
@@ -81,31 +138,142 @@ function MenuManager({ restaurant, onBack }) {
 
     setSaving(true)
 
-    const { error } = await supabase
-      .from('menus')
-      .insert({
-        restaurant_id: restaurant.id,
-        category_id: menuForm.category_id || null,
-        name: menuForm.name.trim(),
-        description: menuForm.description.trim(),
-        price: Number(menuForm.price),
-        is_available: true
-      })
+    try {
+      const imageUrl = await uploadMenuImage(selectedImage)
 
-    if (error) {
-      setMessage(error.message)
-    } else {
+      const { error } = await supabase
+        .from('menus')
+        .insert({
+          restaurant_id: restaurant.id,
+          category_id: menuForm.category_id || null,
+          name: menuForm.name.trim(),
+          description: menuForm.description.trim(),
+          price: Number(menuForm.price),
+          image_url: imageUrl,
+          is_available: true
+        })
+
+      if (error) {
+        throw error
+      }
+
       setMenuForm({
         name: '',
         description: '',
         price: '',
         category_id: ''
       })
+
+      setSelectedImage(null)
       setMessage('Menu berhasil ditambahkan.')
       await loadData()
+    } catch (error) {
+      setMessage(error.message)
     }
 
     setSaving(false)
+  }
+
+  const editMenu = (menu) => {
+    setEditingMenu(menu.id)
+    setSelectedImage(null)
+
+    setMenuForm({
+      name: menu.name || '',
+      description: menu.description || '',
+      price: menu.price || '',
+      category_id: menu.category_id || ''
+    })
+
+    setMessage('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const updateMenu = async (e) => {
+    e.preventDefault()
+    setMessage('')
+
+    if (!menuForm.name.trim()) {
+      setMessage('Nama menu wajib diisi.')
+      return
+    }
+
+    if (!menuForm.price || Number(menuForm.price) <= 0) {
+      setMessage('Harga menu harus lebih dari 0.')
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      const currentMenu = menus.find(
+        (menu) => menu.id === editingMenu
+      )
+
+      const oldImageUrl = currentMenu?.image_url || null
+
+      const updateData = {
+        category_id: menuForm.category_id || null,
+        name: menuForm.name.trim(),
+        description: menuForm.description.trim(),
+        price: Number(menuForm.price)
+      }
+
+      let newImageUrl = null
+
+      if (selectedImage) {
+        newImageUrl = await uploadMenuImage(selectedImage)
+        updateData.image_url = newImageUrl
+      }
+
+      const { error } = await supabase
+        .from('menus')
+        .update(updateData)
+        .eq('id', editingMenu)
+        .eq('restaurant_id', restaurant.id)
+
+      if (error) {
+        if (newImageUrl) {
+          await deleteMenuImage(newImageUrl)
+        }
+        throw error
+      }
+
+      if (selectedImage && oldImageUrl) {
+        await deleteMenuImage(oldImageUrl)
+      }
+
+      setEditingMenu(null)
+      setSelectedImage(null)
+
+      setMenuForm({
+        name: '',
+        description: '',
+        price: '',
+        category_id: ''
+      })
+
+      setMessage('Menu berhasil diperbarui.')
+      await loadData()
+    } catch (error) {
+      setMessage(error.message)
+    }
+
+    setSaving(false)
+  }
+
+  const cancelEditMenu = () => {
+    setEditingMenu(null)
+    setSelectedImage(null)
+
+    setMenuForm({
+      name: '',
+      description: '',
+      price: '',
+      category_id: ''
+    })
+
+    setMessage('')
   }
 
   const deleteCategory = async (id) => {
@@ -126,16 +294,26 @@ function MenuManager({ restaurant, onBack }) {
   const deleteMenu = async (id) => {
     if (!confirm('Hapus menu ini?')) return
 
+    const menu = menus.find((item) => item.id === id)
+    const imageUrl = menu?.image_url || null
+
     const { error } = await supabase
       .from('menus')
       .delete()
       .eq('id', id)
+      .eq('restaurant_id', restaurant.id)
 
     if (error) {
       setMessage(error.message)
-    } else {
-      await loadData()
+      return
     }
+
+    if (imageUrl) {
+      await deleteMenuImage(imageUrl)
+    }
+
+    setMessage('Menu berhasil dihapus.')
+    await loadData()
   }
 
   const toggleMenu = async (menu) => {
@@ -220,12 +398,17 @@ function MenuManager({ restaurant, onBack }) {
           </section>
 
           <section className="manager-card">
-            <h2>Tambah Menu</h2>
+            <h2>{editingMenu ? 'Edit Menu' : 'Tambah Menu'}</h2>
             <p className="manager-description">
-              Masukkan makanan atau minuman baru.
+              {editingMenu
+                ? 'Ubah informasi menu yang dipilih.'
+                : 'Masukkan makanan atau minuman baru.'}
             </p>
 
-            <form onSubmit={addMenu} className="manager-form">
+            <form
+              onSubmit={editingMenu ? updateMenu : addMenu}
+              className="manager-form"
+            >
               <label>Nama Menu</label>
               <input
                 value={menuForm.name}
@@ -271,6 +454,39 @@ function MenuManager({ restaurant, onBack }) {
                 ))}
               </select>
 
+              <label>Foto Menu</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  setSelectedImage(e.target.files?.[0] || null)
+                }
+              />
+
+              {editingMenu && (() => {
+                const currentMenu = menus.find(
+                  (menu) => menu.id === editingMenu
+                )
+
+                if (!currentMenu?.image_url) return null
+
+                return (
+                  <div className="menu-image-preview">
+                    <small>Foto saat ini:</small>
+                    <img
+                      src={currentMenu.image_url}
+                      alt={currentMenu.name}
+                    />
+                  </div>
+                )
+              })()}
+
+              {selectedImage && (
+                <small>
+                  Foto baru dipilih: {selectedImage.name}
+                </small>
+              )}
+
               <label>Deskripsi</label>
               <textarea
                 value={menuForm.description}
@@ -285,8 +501,18 @@ function MenuManager({ restaurant, onBack }) {
               />
 
               <button type="submit" disabled={saving}>
-                + Tambah Menu
+                {editingMenu ? 'Simpan Perubahan' : '+ Tambah Menu'}
               </button>
+
+              {editingMenu && (
+                <button
+                  type="button"
+                  onClick={cancelEditMenu}
+                  disabled={saving}
+                >
+                  Batal
+                </button>
+              )}
             </form>
           </section>
         </div>
@@ -333,6 +559,13 @@ function MenuManager({ restaurant, onBack }) {
                     </div>
 
                     <div className="menu-item-actions">
+                      <button
+                        className="edit-button"
+                        onClick={() => editMenu(menu)}
+                      >
+                        Edit
+                      </button>
+
                       <button
                         className={
                           menu.is_available
