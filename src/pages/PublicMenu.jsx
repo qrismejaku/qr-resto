@@ -333,7 +333,7 @@ export default function PublicMenu({ slug, tableNumber }) {
                     type="button"
                     onClick={() => changeQty(item.id, -1)}
                   >
-                    âˆ’
+                    &#8722;
                   </button>
 
                   <span>{item.qty}</span>
@@ -385,7 +385,7 @@ export default function PublicMenu({ slug, tableNumber }) {
                 }
               }}
             >
-              Ã—
+              &#215;
             </button>
 
             <span className="section-label">CHECKOUT</span>
@@ -481,5 +481,6 @@ export default function PublicMenu({ slug, tableNumber }) {
     </div>
   )
 }
+
 
 
