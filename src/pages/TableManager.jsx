@@ -86,10 +86,61 @@ export default function TableManager({ restaurant, onBack }) {
   }
 
   const downloadQR = (tableNumber) => {
-    const canvas = document.getElementById(`qr-${tableNumber}`)
+    const qrCanvas = document.getElementById(`qr-${tableNumber}`)
 
-    if (!canvas) return
+    if (!qrCanvas) return
 
+    const width = 800
+    const height = 1000
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+
+    const ctx = canvas.getContext('2d')
+
+    if (!ctx) return
+
+    // Background
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, width, height)
+
+    // Border
+    ctx.strokeStyle = '#111827'
+    ctx.lineWidth = 6
+    ctx.strokeRect(20, 20, width - 40, height - 40)
+
+    // Text settings
+    ctx.textAlign = 'center'
+
+    // Brand
+    ctx.fillStyle = '#111827'
+    ctx.font = 'bold 42px Arial'
+    ctx.fillText('QR RESTO', width / 2, 95)
+
+    // Restaurant name
+    ctx.font = 'bold 34px Arial'
+    ctx.fillText(restaurant.name, width / 2, 150)
+
+    // QR
+    const qrSize = 520
+    const qrX = (width - qrSize) / 2
+    const qrY = 205
+
+    ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize)
+
+    // Table number
+    ctx.fillStyle = '#111827'
+    ctx.font = 'bold 58px Arial'
+    ctx.fillText(`MEJA ${tableNumber}`, width / 2, 800)
+
+    // Instruction
+    ctx.fillStyle = '#374151'
+    ctx.font = '28px Arial'
+    ctx.fillText('Scan QR untuk melihat menu', width / 2, 860)
+    ctx.fillText('dan melakukan pesanan', width / 2, 900)
+
+    // Download
     const link = document.createElement('a')
     link.download = `${restaurant.slug}-meja-${tableNumber}-qr.png`
     link.href = canvas.toDataURL('image/png')
@@ -208,3 +259,4 @@ export default function TableManager({ restaurant, onBack }) {
     </div>
   )
 }
+
