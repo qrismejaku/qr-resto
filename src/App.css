@@ -1,4 +1,4 @@
-/* =========================
+﻿/* =========================
    QR RESTO - APP STYLES
    ========================= */
 
@@ -2871,6 +2871,96 @@ a {
   .order-button {
     width: 100%;
     min-width: 0;
+  }
+}
+
+
+
+/* ===== FINAL TABLE & QR LAYOUT ===== */
+
+.table-item-qr {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto auto !important;
+  align-items: center !important;
+  gap: 24px !important;
+  padding: 24px !important;
+}
+
+.table-info {
+  min-width: 0 !important;
+}
+
+.table-info strong {
+  display: block !important;
+  font-size: 20px !important;
+  margin-bottom: 8px !important;
+}
+
+.table-info small {
+  display: block !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+  line-height: 1.5 !important;
+}
+
+.table-qr-box {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding: 18px !important;
+  min-width: 210px !important;
+  box-sizing: border-box !important;
+}
+
+.table-qr-box canvas {
+  width: 180px !important;
+  height: 180px !important;
+  max-width: 180px !important;
+}
+
+.table-qr-box > strong {
+  font-size: 16px !important;
+  color: #111827 !important;
+}
+
+.qr-download-button {
+  min-height: 44px !important;
+  padding: 10px 16px !important;
+  cursor: pointer !important;
+}
+
+.table-delete {
+  align-self: center !important;
+  min-width: 70px !important;
+  cursor: pointer !important;
+}
+
+@media (max-width: 800px) {
+  .table-item-qr {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+    gap: 18px !important;
+    padding: 18px !important;
+  }
+
+  .table-info {
+    text-align: center !important;
+  }
+
+  .table-info small {
+    font-size: 12px !important;
+  }
+
+  .table-qr-box {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .table-delete {
+    width: 100% !important;
   }
 }
 
