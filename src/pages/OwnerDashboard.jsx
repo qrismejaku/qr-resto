@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import MenuManager from './MenuManager'
 import TableManager from './TableManager'
@@ -16,6 +16,7 @@ function OwnerDashboard({ onLogout }) {
   const [orderCount, setOrderCount] = useState(0)
   const [paymentTotal, setPaymentTotal] = useState(0)
   const [notificationEnabled, setNotificationEnabled] = useState(false)
+  const [floatingNotification, setFloatingNotification] = useState(null)
 
   const [form, setForm] = useState({
     name: '',
@@ -25,6 +26,16 @@ function OwnerDashboard({ onLogout }) {
     email: '',
     address: ''
   })
+
+  useEffect(() => {
+    if (!floatingNotification) return
+
+    const timer = setTimeout(() => {
+      setFloatingNotification(null)
+    }, 6000)
+
+    return () => clearTimeout(timer)
+  }, [floatingNotification])
 
   useEffect(() => {
     loadDashboard()
@@ -60,6 +71,12 @@ function OwnerDashboard({ onLogout }) {
             tableNumber = tableData.table_number
           }
         }
+
+        setFloatingNotification({
+          tableNumber,
+          customerName,
+          total
+        })
 
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('Pesanan Baru - Meja ' + tableNumber, {
@@ -306,6 +323,15 @@ function OwnerDashboard({ onLogout }) {
   }
 
   return (
+    <>
+      {floatingNotification && (
+        <div onClick={() => setFloatingNotification(null)} style={{ position: 'fixed', top: '20px', right: '20px', width: 'min(360px, calc(100vw - 40px))', zIndex: 99999, background: '#111827', color: '#ffffff', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 12px 35px rgba(0,0,0,0.25)', cursor: 'pointer' }}>
+          <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px' }}>&#128276; Pesanan Baru</div>
+          <div style={{ fontSize: '14px' }}>Meja {floatingNotification.tableNumber}</div>
+          <div style={{ fontSize: '14px', marginTop: '4px' }}>{floatingNotification.customerName} &middot; Rp{floatingNotification.total}</div>
+          <div style={{ fontSize: '12px', opacity: 0.6, marginTop: '10px' }}>Klik untuk menutup</div>
+        </div>
+      )}
     <div className="dashboard-page">
       <header className="dashboard-header">
         <div>
@@ -506,15 +532,9 @@ function OwnerDashboard({ onLogout }) {
         )}
       </main>
     </div>
+    </>
   )
 }
 
 export default OwnerDashboard
-
-
-
-
-
-
-
 
