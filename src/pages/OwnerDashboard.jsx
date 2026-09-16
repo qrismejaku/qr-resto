@@ -38,16 +38,32 @@ function OwnerDashboard({ onLogout }) {
       schema: 'public',
       table: 'orders',
       filter: 'restaurant_id=eq.' + restaurant.id
-    }, (payload) => {
+    }, async (payload) => {
       loadDashboard()
 
       if (payload.eventType === 'INSERT' && notificationEnabled) {
         const order = payload.new || {}
         const total = Number(order.total || 0).toLocaleString('id-ID')
 
+        let tableNumber = 'Tanpa meja'
+        const customerName = order.customer_name || 'Pelanggan'
+
+        if (order.table_id) {
+          const { data: tableData } = await supabase
+            .from('restaurant_tables')
+            .select('table_number')
+            .eq('id', order.table_id)
+            .eq('restaurant_id', restaurant.id)
+            .maybeSingle()
+
+          if (tableData?.table_number) {
+            tableNumber = tableData.table_number
+          }
+        }
+
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Pesanan Baru!', {
-            body: 'Pesanan baru masuk • Rp' + total
+          new Notification('Pesanan Baru - Meja ' + tableNumber, {
+            body: customerName + ' - Rp' + total
           })
         }
 
