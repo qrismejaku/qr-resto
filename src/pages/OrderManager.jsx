@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 function OrderManager({ restaurant, onBack }) {
@@ -87,6 +87,19 @@ function OrderManager({ restaurant, onBack }) {
 
   useEffect(() => {
     loadOrders()
+
+    const channel = supabase.channel('orders-' + restaurant.id).on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'orders',
+      filter: 'restaurant_id=eq.' + restaurant.id
+    }, () => {
+      loadOrders()
+    }).subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [restaurant.id])
 
   const updateStatus = async (orderId, status) => {
