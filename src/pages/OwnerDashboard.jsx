@@ -72,20 +72,50 @@ function OwnerDashboard({ onLogout }) {
       setTableCount(tablesData?.length || 0)
 
     
+      const now = new Date()
+      const startOfToday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      )
+      const startOfTomorrow = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1
+      )
+
       const { data: ordersData } = await supabase
         .from('orders')
         .select('total')
         .eq('restaurant_id', data.id)
+        .gte('created_at', startOfToday.toISOString())
+        .lt('created_at', startOfTomorrow.toISOString())
 
       const orders = ordersData || []
 
       setOrderCount(orders.length)
-      setPaymentTotal(
-        orders.reduce(
-          (sum, order) => sum + Number(order.total || 0),
-          0
+
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select('amount')
+        .eq('restaurant_id', data.id)
+        .eq('status', 'paid')
+        .gte('created_at', startOfToday.toISOString())
+        .lt('created_at', startOfTomorrow.toISOString())
+
+      if (paymentsError) {
+        console.error('Gagal membaca pembayaran:', paymentsError)
+        setPaymentTotal(0)
+      } else {
+        const payments = paymentsData || []
+
+        setPaymentTotal(
+          payments.reduce(
+            (sum, payment) => sum + Number(payment.amount || 0),
+            0
+          )
         )
-      )
+      }
     }
 
     setLoading(false)
@@ -357,7 +387,7 @@ function OwnerDashboard({ onLogout }) {
 
               <div className="dashboard-card">
                 <span>PEMBAYARAN</span>
-                <strong>Rp0</strong>
+                <strong>Rp{paymentTotal.toLocaleString("id-ID")}</strong>
                 <p>Transaksi hari ini</p>
               </div>
             </section>
@@ -369,6 +399,7 @@ function OwnerDashboard({ onLogout }) {
 }
 
 export default OwnerDashboard
+
 
 
 

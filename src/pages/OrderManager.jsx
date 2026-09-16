@@ -31,6 +31,33 @@ function OrderManager({ restaurant, onBack }) {
 
     const orderIds = ordersData.map((order) => order.id)
 
+    const tableIds = [
+      ...new Set(
+        ordersData
+          .map((order) => order.table_id)
+          .filter(Boolean)
+      )
+    ]
+
+    let tablesData = []
+
+    if (tableIds.length > 0) {
+      const { data, error: tablesError } = await supabase
+        .from('restaurant_tables')
+        .select('id, table_number')
+        .eq('restaurant_id', restaurant.id)
+        .in('id', tableIds)
+
+      if (tablesError) {
+        console.error(tablesError)
+        setMessage(tablesError.message)
+        setLoading(false)
+        return
+      }
+
+      tablesData = data || []
+    }
+
     const { data: itemsData, error: itemsError } = await supabase
       .from('order_items')
       .select('*')
@@ -45,6 +72,10 @@ function OrderManager({ restaurant, onBack }) {
 
     const combined = ordersData.map((order) => ({
       ...order,
+      table_number:
+        (tablesData || []).find(
+          (table) => table.id === order.table_id
+        )?.table_number || null,
       items: (itemsData || []).filter(
         (item) => item.order_id === order.id
       )
@@ -192,8 +223,8 @@ function OrderManager({ restaurant, onBack }) {
 
                 <div className="order-table">
                   Meja{' '}
-                  {order.table_id
-                    ? order.table_id
+                  {order.table_number
+                    ? order.table_number
                     : 'Tanpa meja'}
                 </div>
 
@@ -309,3 +340,5 @@ function OrderManager({ restaurant, onBack }) {
 }
 
 export default OrderManager
+
+
