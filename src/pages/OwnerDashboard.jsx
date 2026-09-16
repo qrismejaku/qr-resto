@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import MenuManager from './MenuManager'
 import TableManager from './TableManager'
@@ -27,7 +27,20 @@ function OwnerDashboard({ onLogout }) {
 
   useEffect(() => {
     loadDashboard()
-  }, [])
+
+    const channel = supabase.channel('dashboard-orders-' + restaurant.id).on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'orders',
+      filter: 'restaurant_id=eq.' + restaurant.id
+    }, () => {
+      loadDashboard()
+    }).subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [restaurant.id])
 
   const loadDashboard = async () => {
     setLoading(true)
@@ -382,7 +395,7 @@ function OwnerDashboard({ onLogout }) {
                 <span>PESANAN</span>
                 <strong>{orderCount}</strong>
                 <p>Pesanan hari ini</p>
-                <button className="dashboard-card-link" onClick={() => setPage('orders')}>Lihat Pesanan →</button>
+                <button className="dashboard-card-link" onClick={() => setPage('orders')}>Lihat Pesanan ?</button>
               </div>
 
               <div className="dashboard-card">
