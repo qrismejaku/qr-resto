@@ -15,6 +15,7 @@ function OwnerDashboard({ onLogout }) {
   const [tableCount, setTableCount] = useState(0)
   const [orderCount, setOrderCount] = useState(0)
   const [paymentTotal, setPaymentTotal] = useState(0)
+  const [notificationEnabled, setNotificationEnabled] = useState(false)
 
   const [form, setForm] = useState({
     name: '',
@@ -37,14 +38,88 @@ function OwnerDashboard({ onLogout }) {
       schema: 'public',
       table: 'orders',
       filter: 'restaurant_id=eq.' + restaurant.id
-    }, () => {
+    }, (payload) => {
       loadDashboard()
+
+      if (payload.eventType === 'INSERT' && notificationEnabled) {
+        const order = payload.new || {}
+        const total = Number(order.total || 0).toLocaleString('id-ID')
+
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Pesanan Baru!', {
+            body: 'Pesanan baru masuk • Rp' + total
+          })
+        }
+
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext
+
+          if (AudioContextClass) {
+            const audioContext = new AudioContextClass()
+            const oscillator = audioContext.createOscillator()
+            const gainNode = audioContext.createGain()
+
+            oscillator.connect(gainNode)
+            gainNode.connect(audioContext.destination)
+
+            oscillator.frequency.value = 880
+            gainNode.gain.value = 0.08
+
+            oscillator.start()
+            oscillator.stop(audioContext.currentTime + 0.25)
+          }
+        } catch (error) {
+          console.error('Gagal memainkan suara notifikasi:', error)
+        }
+      }
     }).subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [restaurant?.id])
+  }, [restaurant?.id, notificationEnabled])
+
+  const enableNotifications = async () => {
+    try {
+      if ('Notification' in window) {
+        const permission = await Notification.requestPermission()
+
+        if (permission !== 'granted') {
+          setMessage('Izin notifikasi browser belum diberikan.')
+          return
+        }
+      }
+
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext
+
+      if (AudioContextClass) {
+        const audioContext = new AudioContextClass()
+
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume()
+        }
+
+        const oscillator = audioContext.createOscillator()
+        const gainNode = audioContext.createGain()
+
+        oscillator.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+
+        oscillator.frequency.value = 880
+        gainNode.gain.value = 0.05
+
+        oscillator.start()
+        oscillator.stop(audioContext.currentTime + 0.12)
+      }
+
+      setNotificationEnabled(true)
+      setMessage('Notifikasi dan suara berhasil diaktifkan.')
+    } catch (error) {
+      console.error('Gagal mengaktifkan notifikasi:', error)
+      setMessage('Notifikasi atau suara gagal diaktifkan.')
+    }
+  }
 
   const loadDashboard = async () => {
     setLoading(true)
@@ -376,6 +451,9 @@ function OwnerDashboard({ onLogout }) {
               </div>
 
               <div className="overview-actions">
+                <button onClick={enableNotifications} disabled={notificationEnabled}>
+                  {notificationEnabled ? 'Notifikasi Aktif' : 'Aktifkan Notifikasi & Suara'}
+                </button>
                 <button onClick={() => setPage('menu')}>Kelola Menu</button>
                 <button onClick={() => setPage('tables')}>Kelola Meja</button>
                 <button onClick={() => setPage('orders')}>Kelola Pesanan</button>
