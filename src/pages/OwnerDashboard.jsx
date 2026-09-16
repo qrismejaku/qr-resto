@@ -27,6 +27,10 @@ function OwnerDashboard({ onLogout }) {
 
   useEffect(() => {
     loadDashboard()
+  }, [])
+
+  useEffect(() => {
+    if (!restaurant?.id) return
 
     const channel = supabase.channel('dashboard-orders-' + restaurant.id).on('postgres_changes', {
       event: '*',
@@ -40,7 +44,7 @@ function OwnerDashboard({ onLogout }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [restaurant.id])
+  }, [restaurant?.id])
 
   const loadDashboard = async () => {
     setLoading(true)
